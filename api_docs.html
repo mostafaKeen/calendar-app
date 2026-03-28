@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Booking API Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1100px;
+            margin: auto;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        h1, h2, h3 {
+            color: #111827;
+            margin-top: 1.5em;
+        }
+        h1 {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5em;
+        }
+        .endpoint {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s;
+        }
+        .endpoint:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+        .method {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            margin-right: 12px;
+            letter-spacing: 0.5px;
+        }
+        .method.get {
+            background-color: #10b981;
+        }
+        .method.post {
+            background-color: #3b82f6;
+        }
+        .url {
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 1rem;
+            background-color: #f3f4f6;
+            padding: 4px 12px;
+            border-radius: 32px;
+            word-break: break-all;
+            font-weight: 500;
+        }
+        pre {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            margin: 1rem 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.25rem 0;
+            font-size: 0.9rem;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        th {
+            background-color: #f1f5f9;
+            text-align: left;
+            padding: 10px 12px;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eef2ff;
+            vertical-align: top;
+        }
+        .required {
+            color: #dc2626;
+            font-weight: 600;
+            font-size: 0.8rem;
+            background: #fee2e2;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .optional {
+            color: #4b5563;
+            font-size: 0.75rem;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .badge {
+            background: #eef2ff;
+            color: #1e40af;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 30px;
+            margin-left: 6px;
+        }
+        .note {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        hr {
+            margin: 2rem 0;
+            border: none;
+            border-top: 1px solid #e5e7eb;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 3rem;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1.5rem;
+        }
+        code {
+            background-color: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<h1>📅 Bitrix24 Meeting Booking API</h1>
+<p>Custom REST-like endpoints that interact with the Bitrix24 calendar. These APIs allow you to <strong>fetch available users</strong>, <strong>get free time slots</strong> (with flexible search window), and <strong>automatically book the first free meeting slot</strong> for a specific user. All endpoints return JSON and support CORS.</p>
+
+<!-- ===================== GET USERS ===================== -->
+<div class="endpoint">
+    <h2><span class="method get">GET</span> <span class="url">/get_users.php</span></h2>
+    <p>Returns a list of active Bitrix24 users. Useful for populating dropdowns (appointment owner selection) before booking.</p>
+
+    <h3>📥 Request</h3>
+    <p>No parameters required. Simple GET request.</p>
+    <pre>GET /get_users.php</pre>
+
+    <h3>📤 Response (200 OK)</h3>
+    <pre>{
+  "status": "success",
+  "users": [
+    {
+      "id": "123",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "work_position": "Sales Manager"
+    },
+    {
+      "id": "456",
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "work_position": "Product Owner"
+    }
+  ]
+}</pre>
+    <p>If the request fails, an error object is returned.</p>
+</div>
+
+<!-- ===================== GET FREE SLOTS ===================== -->
+<div class="endpoint">
+    <h2><span class="method post">POST</span> <span class="url">/get_free.php</span></h2>
+    <p>Checks a specific user's calendar on a given date and returns all available time slots (15‑minute increments) that can accommodate a meeting of a given duration. You can define the start time and the search range.</p>
+
+    <h3>📥 Request Body (JSON)</h3>
+    <table>
+        <thead>
+            <tr><th>Parameter</th><th>Type</th><th>Requirement</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>ownerId</code></td><td>integer</td><td><span class="required">Required</span></td><td>User ID (from <code>get_users.php</code>) whose calendar is checked.</td></tr>
+            <tr><td><code>date</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Date in <code>YYYY-MM-DD</code>. Default: today.</td></tr>
+            <tr><td><code>durationMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Meeting length in minutes. Default: <code>30</code>.</td></tr>
+            <tr><td><code>startHour</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Start hour for search (0–23). Default: <code>9</code> (9 AM).</td></tr>
+            <tr><td><code>startMinute</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Start minute for search. Default: <code>0</code>.</td></tr>
+            <tr><td><code>rangeMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Number of minutes to look forward from the start time. Default: <code>480</code> (8 hours).</td></tr>
+        </tbody>
+    </table>
+    <div class="note">
+        <strong>⚙️ How it works:</strong> The API fetches all calendar events for the target user on the given date, then scans from <code>startHour:startMinute</code> forward in 15‑minute steps. It returns every time slot where the requested <code>durationMinutes</code> fits without overlapping existing events.
+    </div>
+
+    <h3>📤 Example Request</h3>
+    <pre>curl -X POST https://your-domain.com/get_free.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ownerId": 123,
+    "date": "2026-03-30",
+    "durationMinutes": 45,
+    "startHour": 10,
+    "startMinute": 0,
+    "rangeMinutes": 360
+  }'</pre>
+
+    <h3>📤 Success Response</h3>
+    <pre>{
+  "status": "success",
+  "available_slots": [
+    {
+      "start": "2026-03-30T10:00:00+03:00",
+      "end": "2026-03-30T10:45:00+03:00"
+    },
+    {
+      "start": "2026-03-30T10:45:00+03:00",
+      "end": "2026-03-30T11:30:00+03:00"
+    }
+  ],
+  "count": 2
+}</pre>
+
+    <h3>⚠️ Error Response</h3>
+    <pre>{
+  "status": "error",
+  "message": "Invalid input parameters"
+}</pre>
+</div>
+
+<!-- ===================== BOOK MEETING ===================== -->
+<div class="endpoint">
+    <h2><span class="method post">POST</span> <span class="url">/book_meeting.php</span></h2>
+    <p>Automatically finds the <strong>first available free slot</strong> (respecting busy events) for the given user on a specific date, and creates a calendar event. You control the search window and meeting details. If a free slot exists, the meeting is booked instantly.</p>
+
+    <h3>📥 Request Body (JSON)</h3>
+    <table>
+        <thead>
+            <tr><th>Parameter</th><th>Type</th><th>Requirement</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>ownerId</code></td><td>integer</td><td><span class="required">Required</span></td><td>User ID of the meeting owner (the person whose calendar is used).</td></tr>
+            <tr><td><code>date</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Date in <code>YYYY-MM-DD</code>. Default: today.</td></tr>
+            <tr><td><code>durationMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Duration in minutes. Default: <code>30</code>.</td></tr>
+            <tr><td><code>startHour</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Search start hour. Default: <code>9</code> (9 AM).</td></tr>
+            <tr><td><code>startMinute</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Search start minute. Default: <code>0</code>.</td></tr>
+            <tr><td><code>rangeMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>How many minutes forward to search. Default: <code>480</code> (8 hours).</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Event title. Default: "Auto-booked Meeting".</td></tr>
+            <tr><td><code>description</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Meeting description or agenda.</td></tr>
+            <tr><td><code>location</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Physical address, Zoom link, or room name.</td></tr>
+            <tr><td><code>color</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Event color (e.g. <code>#9cbe1c</code>).</td></tr>
+            <tr><td><code>text_color</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Text color for the event.</td></tr>
+            <tr><td><code>accessibility</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Availability status: <code>busy</code> or <code>free</code>. Default: <code>busy</code>.</td></tr>
+            <tr><td><code>importance</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Event priority: <code>normal</code>, <code>high</code>. Default: <code>normal</code>.</td></tr>
+            <tr><td><code>private_event</code></td><td>string</td><td><span class="optional">Optional</span></td><td><code>Y</code> or <code>N</code>. Default: <code>N</code>.</td></tr>
+            <tr><td><code>is_meeting</code></td><td>string</td><td><span class="optional">Optional</span></td><td><code>Y</code> enables meeting features (attendees, host). Default not set.</td></tr>
+            <tr><td><code>host</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Meeting host ID. Defaults to <code>ownerId</code> when <code>is_meeting=Y</code>.</td></tr>
+            <tr><td><code>attendees</code></td><td>array</td><td><span class="optional">Optional</span></td><td>Array of user IDs to invite. Only used if <code>is_meeting=Y</code>.</td></tr>
+            <tr><td><code>remind</code></td><td>array</td><td><span class="optional">Optional</span></td><td>Reminder settings. Default: <code>[{"type":"min","count":15}]</code> (15 min before).</td></tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>🔍 Auto‑search logic:</strong> The API scans the calendar in 15‑minute increments starting from <code>startHour:startMinute</code>, up to <code>rangeMinutes</code> forward. The <strong>first slot</strong> that fits <code>durationMinutes</code> and does <strong>not</strong> overlap any existing event is selected and booked. After booking, the event ID is returned.
+    </div>
+
+    <h3>📤 Example Request (book a 30‑minute meeting with attendee)</h3>
+    <pre>curl -X POST https://your-domain.com/book_meeting.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ownerId": 123,
+    "date": "2026-03-31",
+    "durationMinutes": 30,
+    "startHour": 10,
+    "rangeMinutes": 300,
+    "name": "Project Sync",
+    "description": "Discuss Q2 roadmap",
+    "location": "Zoom / Internal VC",
+    "is_meeting": "Y",
+    "attendees": [456, 789],
+    "color": "#9cbe1c"
+  }'</pre>
+
+    <h3>✅ Success Response</h3>
+    <pre>{
+  "status": "success",
+  "message": "Meeting booked successfully",
+  "event_id": 2417,
+  "slot": {
+    "start": "2026-03-31T10:00:00+03:00",
+    "end": "2026-03-31T10:30:00+03:00"
+  },
+  "api_response": { ... }
+}</pre>
+
+    <h3>❌ No Free Slot Response</h3>
+    <pre>{
+  "status": "error",
+  "message": "Not Available",
+  "details": "No free slots found within the specified range."
+}</pre>
+
+    <h3>❌ Validation / Bitrix Error</h3>
+    <pre>{
+  "status": "error",
+  "message": "Not Available",
+  "details": "Invalid event data (Bitrix error description)",
+  "api_response": { ... }
+}</pre>
+</div>
+
+<hr />
+
+<h2>📌 Common Notes & Integration Tips</h2>
+<ul>
+    <li><strong>Time zone:</strong> All endpoints use <code>+03:00</code> (Bitrix24 timezone configured on the portal). Adjust if your portal uses a different zone.</li>
+    <li><strong>CORS:</strong> All endpoints return <code>Access-Control-Allow-Origin: *</code> and support <code>OPTIONS</code> preflight.</li>
+    <li><strong>Search step:</strong> Both <code>get_free.php</code> and <code>book_meeting.php</code> scan in 15‑minute intervals. The minimum bookable duration is 15 minutes, but you can set any duration multiple of 15 (recommended).</li>
+    <li><strong>Event overlap detection:</strong> Overlap is strict: if any existing event occupies even a minute of the candidate slot, it is considered busy.</li>
+    <li><strong>User ID source:</strong> Always fetch the latest user list from <code>get_users.php</code> to ensure valid <code>ownerId</code> and attendee IDs.</li>
+    <li><strong>Meeting vs simple event:</strong> If you set <code>"is_meeting": "Y"</code>, the event becomes a meeting and can include attendees and a host. Without that flag, it's a simple calendar event.</li>
+</ul>
+
+<h2>🚀 Quick Start Flow</h2>
+<ol>
+    <li>Call <code>GET /get_users.php</code> → retrieve user list, display in dropdown.</li>
+    <li>Optionally call <code>POST /get_free.php</code> to preview free slots for a given user, date, and duration.</li>
+    <li>Call <code>POST /book_meeting.php</code> with the selected user, date, duration, and meeting details → automatically finds and books the first free slot.</li>
+</ol>
+
+<footer>
+    <p>📘 API Version 1.0 — Powered by Bitrix24 REST Webhooks | All responses are JSON encoded.</p>
+</footer>
+</body>
+</html>
