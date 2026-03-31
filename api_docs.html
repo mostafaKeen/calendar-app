@@ -166,10 +166,10 @@
   "status": "success",
   "users": [
     {
-      "id": "123",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "work_position": "Sales Manager"
+      "id": "1",
+      "name": "Mohamed Nady",
+      "email": "Nady@keenenter.com",
+      "work_position": ""
     },
     {
       "id": "456",
@@ -181,6 +181,41 @@
 }</pre>
     <p>If the request fails, an error object is returned.</p>
 </div>
+
+<!-- ===================== GET TIMELINE ===================== -->
+<div class="endpoint">
+    <h2><span class="method post">POST</span> <span class="url">/get_timeline.php</span></h2>
+    <p>Checks a specific user's calendar (defaults to <strong>nady@keenenter.com</strong>) and returns a list of existing events (busy timeline) for a given date. Useful for visual representation of commitments.</p>
+
+    <h3>📥 Request Body (JSON)</h3>
+    <table>
+        <thead>
+            <tr><th>Parameter</th><th>Type</th><th>Requirement</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>ownerId</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>User ID (defaults to 1 = Nady).</td></tr>
+            <tr><td><code>date</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Date in <code>YYYY-MM-DD</code>. Default: today.</td></tr>
+        </tbody>
+    </table>
+
+    <h3>📤 Success Response</h3>
+    <pre>{
+  "status": "success",
+  "user_id": 1,
+  "date": "2026-03-31",
+  "timeline": [
+    {
+      "id": "1234",
+      "name": "Team Standup",
+      "start": "2026-03-31T09:00:00+03:00",
+      "end": "2026-03-31T10:00:00+03:00",
+      "accessibility": "busy"
+    }
+  ],
+  "count": 1
+}</pre>
+</div>
+
 
 <!-- ===================== GET FREE SLOTS ===================== -->
 <div class="endpoint">
