@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meeting Booking API Documentation</title>
+    <title>Meeting Booking API Documentation (Tool-Calls Protocol)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -44,9 +44,6 @@
             font-size: 0.85rem;
             margin-right: 12px;
             letter-spacing: 0.5px;
-        }
-        .method.get {
-            background-color: #10b981;
         }
         .method.post {
             background-color: #3b82f6;
@@ -109,14 +106,6 @@
             border-radius: 20px;
             display: inline-block;
         }
-        .badge {
-            background: #eef2ff;
-            color: #1e40af;
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 30px;
-            margin-left: 6px;
-        }
         .note {
             background: #fffbeb;
             border-left: 4px solid #f59e0b;
@@ -124,11 +113,6 @@
             border-radius: 12px;
             margin: 1rem 0;
             font-size: 0.9rem;
-        }
-        hr {
-            margin: 2rem 0;
-            border: none;
-            border-top: 1px solid #e5e7eb;
         }
         footer {
             text-align: center;
@@ -149,70 +133,80 @@
 </head>
 <body>
 
-<h1>📅 Bitrix24 Meeting Booking API</h1>
-<p>Custom REST-like endpoints that interact with the Bitrix24 calendar. These APIs allow you to <strong>fetch available users</strong>, <strong>get free time slots</strong> (with flexible search window), and <strong>automatically book the first free meeting slot</strong> for a specific user. All endpoints return JSON and support CORS.</p>
+<h1>📅 Bitrix24 Meeting Booking API (Tool-Calls Protocol)</h1>
+<p>
+    This API provides custom REST-like endpoints that interact with the Bitrix24 calendar using a <strong>tool-calls JSON structure</strong>. 
+    All requests are hardcoded to act on behalf of <strong>Mohamed Nady (nady@keenenter.com)</strong>.
+</p>
 
-<!-- ===================== GET USERS ===================== -->
-<div class="endpoint">
-    <h2><span class="method get">GET</span> <span class="url">/get_users.php</span></h2>
-    <p>Returns a list of active Bitrix24 users. Useful for populating dropdowns (appointment owner selection) before booking.</p>
-
-    <h3>📥 Request</h3>
-    <p>No parameters required. Simple GET request.</p>
-    <pre>GET /get_users.php</pre>
-
-    <h3>📤 Response (200 OK)</h3>
-    <pre>{
-  "status": "success",
-  "users": [
-    {
-      "id": "1",
-      "name": "Mohamed Nady",
-      "email": "Nady@keenenter.com",
-      "work_position": ""
-    },
-    {
-      "id": "456",
-      "name": "Jane Smith",
-      "email": "jane@example.com",
-      "work_position": "Product Owner"
-    }
-  ]
-}</pre>
-    <p>If the request fails, an error object is returned.</p>
+<div class="note">
+    <strong>🔄 Protocol Note:</strong> The API now expects a nested <code>message.toolCallList</code> array in the request and returns a <code>results</code> array in the response. This allows batch processing of multiple tool calls in a single request.
 </div>
 
 <!-- ===================== GET TIMELINE ===================== -->
 <div class="endpoint">
     <h2><span class="method post">POST</span> <span class="url">/get_timeline.php</span></h2>
-    <p>Checks a specific user's calendar (defaults to <strong>nady@keenenter.com</strong>) and returns a list of existing events (busy timeline) for a given date. Useful for visual representation of commitments.</p>
+    <p>Checks the hardcoded user's calendar and returns a list of existing events (busy timeline) for a given date.</p>
 
     <h3>📥 Request Body (JSON)</h3>
-    <table>
-        <thead>
-            <tr><th>Parameter</th><th>Type</th><th>Requirement</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-            <tr><td><code>ownerId</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>User ID (defaults to 1 = Nady).</td></tr>
-            <tr><td><code>date</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Date in <code>YYYY-MM-DD</code>. Default: today.</td></tr>
-        </tbody>
-    </table>
+    <pre>{
+  "message": {
+    "type": "tool-calls",
+    "toolCallList": [
+      {
+        "id": "call_123",
+        "function": {
+          "name": "get_calendar_timeline",
+          "arguments": {
+            "date": "2026-03-31"
+          }
+        }
+      },
+      {
+        "id": "call_456",
+        "function": {
+          "name": "get_calendar_timeline",
+          "arguments": {
+            "date": "2026-04-01"
+          }
+        }
+      }
+    ]
+  }
+}</pre>
 
     <h3>📤 Success Response</h3>
     <pre>{
-  "status": "success",
-  "user_id": 1,
-  "date": "2026-03-31",
-  "timeline": [
+  "results": [
     {
-      "id": "1234",
-      "name": "Team Standup",
-      "start": "2026-03-31T09:00:00+03:00",
-      "end": "2026-03-31T10:00:00+03:00",
-      "accessibility": "busy"
+      "toolCallId": "call_123",
+      "result": {
+        "status": "success",
+        "user_id": 1,
+        "date": "2026-03-31",
+        "timeline": [
+          {
+            "id": "1234",
+            "name": "Team Standup",
+            "start": "2026-03-31T09:00:00+03:00",
+            "end": "2026-03-31T10:00:00+03:00",
+            "accessibility": "busy"
+          }
+        ],
+        "count": 1
+      }
+    },
+    {
+      "toolCallId": "call_456",
+      "result": {
+        "status": "success",
+        "user_id": 1,
+        "date": "2026-04-01",
+        "timeline": [],
+        "count": 0
+      }
     }
-  ],
-  "count": 1
+  ]
 }</pre>
 </div>
 
@@ -220,163 +214,144 @@
 <!-- ===================== GET FREE SLOTS ===================== -->
 <div class="endpoint">
     <h2><span class="method post">POST</span> <span class="url">/get_free.php</span></h2>
-    <p>Checks a specific user's calendar on a given date and returns all available time slots (15‑minute increments) that can accommodate a meeting of a given duration. You can define the start time and the search range.</p>
+    <p>Checks the hardcoded user's calendar and returns all available time slots (15‑minute increments).</p>
 
     <h3>📥 Request Body (JSON)</h3>
-    <table>
-        <thead>
-            <tr><th>Parameter</th><th>Type</th><th>Requirement</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-            <tr><td><code>ownerId</code></td><td>integer</td><td><span class="required">Required</span></td><td>User ID (from <code>get_users.php</code>) whose calendar is checked.</td></tr>
-            <tr><td><code>date</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Date in <code>YYYY-MM-DD</code>. Default: today.</td></tr>
-            <tr><td><code>durationMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Meeting length in minutes. Default: <code>30</code>.</td></tr>
-            <tr><td><code>startHour</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Start hour for search (0–23). Default: <code>9</code> (9 AM).</td></tr>
-            <tr><td><code>startMinute</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Start minute for search. Default: <code>0</code>.</td></tr>
-            <tr><td><code>rangeMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Number of minutes to look forward from the start time. Default: <code>480</code> (8 hours).</td></tr>
-        </tbody>
-    </table>
-    <div class="note">
-        <strong>⚙️ How it works:</strong> The API fetches all calendar events for the target user on the given date, then scans from <code>startHour:startMinute</code> forward in 15‑minute steps. It returns every time slot where the requested <code>durationMinutes</code> fits without overlapping existing events.
-    </div>
-
-    <h3>📤 Example Request</h3>
-    <pre>curl -X POST https://your-domain.com/get_free.php \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ownerId": 123,
-    "date": "2026-03-30",
-    "durationMinutes": 45,
-    "startHour": 10,
-    "startMinute": 0,
-    "rangeMinutes": 360
-  }'</pre>
+    <pre>{
+  "message": {
+    "type": "tool-calls",
+    "toolCallList": [
+      {
+        "id": "call_456",
+        "function": {
+          "name": "get_free_slots",
+          "arguments": {
+            "date": "2026-03-31",
+            "durationMinutes": 30,
+            "startHour": 10
+          }
+        }
+      },
+      {
+        "id": "call_789",
+        "function": {
+          "name": "get_free_slots",
+          "arguments": {
+            "date": "2026-04-01",
+            "durationMinutes": 60,
+            "startHour": 9
+          }
+        }
+      }
+    ]
+  }
+}</pre>
 
     <h3>📤 Success Response</h3>
     <pre>{
-  "status": "success",
-  "available_slots": [
+  "results": [
     {
-      "start": "2026-03-30T10:00:00+03:00",
-      "end": "2026-03-30T10:45:00+03:00"
+      "toolCallId": "call_456",
+      "result": {
+        "status": "success",
+        "available_slots": [
+          { "start": "2026-03-31T10:00:00+03:00", "end": "2026-03-31T10:30:00+03:00" }
+        ],
+        "count": 1
+      }
     },
     {
-      "start": "2026-03-30T10:45:00+03:00",
-      "end": "2026-03-30T11:30:00+03:00"
+      "toolCallId": "call_789",
+      "result": {
+        "status": "success",
+        "available_slots": [
+          { "start": "2026-04-01T09:00:00+03:00", "end": "2026-04-01T10:00:00+03:00" }
+        ],
+        "count": 1
+      }
     }
-  ],
-  "count": 2
-}</pre>
-
-    <h3>⚠️ Error Response</h3>
-    <pre>{
-  "status": "error",
-  "message": "Invalid input parameters"
+  ]
 }</pre>
 </div>
 
 <!-- ===================== BOOK MEETING ===================== -->
 <div class="endpoint">
     <h2><span class="method post">POST</span> <span class="url">/book_meeting.php</span></h2>
-    <p>Automatically finds the <strong>first available free slot</strong> (respecting busy events) for the given user on a specific date, and creates a calendar event. You control the search window and meeting details. If a free slot exists, the meeting is booked instantly.</p>
+    <p>Automatically finds the <strong>first available free slot</strong> and creates a calendar event for the hardcoded user.</p>
 
     <h3>📥 Request Body (JSON)</h3>
-    <table>
-        <thead>
-            <tr><th>Parameter</th><th>Type</th><th>Requirement</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-            <tr><td><code>ownerId</code></td><td>integer</td><td><span class="required">Required</span></td><td>User ID of the meeting owner (the person whose calendar is used).</td></tr>
-            <tr><td><code>date</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Date in <code>YYYY-MM-DD</code>. Default: today.</td></tr>
-            <tr><td><code>durationMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Duration in minutes. Default: <code>30</code>.</td></tr>
-            <tr><td><code>startHour</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Search start hour. Default: <code>9</code> (9 AM).</td></tr>
-            <tr><td><code>startMinute</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Search start minute. Default: <code>0</code>.</td></tr>
-            <tr><td><code>rangeMinutes</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>How many minutes forward to search. Default: <code>480</code> (8 hours).</td></tr>
-            <tr><td><code>name</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Event title. Default: "Auto-booked Meeting".</td></tr>
-            <tr><td><code>description</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Meeting description or agenda.</td></tr>
-            <tr><td><code>location</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Physical address, Zoom link, or room name.</td></tr>
-            <tr><td><code>color</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Event color (e.g. <code>#9cbe1c</code>).</td></tr>
-            <tr><td><code>text_color</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Text color for the event.</td></tr>
-            <tr><td><code>accessibility</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Availability status: <code>busy</code> or <code>free</code>. Default: <code>busy</code>.</td></tr>
-            <tr><td><code>importance</code></td><td>string</td><td><span class="optional">Optional</span></td><td>Event priority: <code>normal</code>, <code>high</code>. Default: <code>normal</code>.</td></tr>
-            <tr><td><code>private_event</code></td><td>string</td><td><span class="optional">Optional</span></td><td><code>Y</code> or <code>N</code>. Default: <code>N</code>.</td></tr>
-            <tr><td><code>is_meeting</code></td><td>string</td><td><span class="optional">Optional</span></td><td><code>Y</code> enables meeting features (attendees, host). Default not set.</td></tr>
-            <tr><td><code>host</code></td><td>integer</td><td><span class="optional">Optional</span></td><td>Meeting host ID. Defaults to <code>ownerId</code> when <code>is_meeting=Y</code>.</td></tr>
-            <tr><td><code>attendees</code></td><td>array</td><td><span class="optional">Optional</span></td><td>Array of user IDs to invite. Only used if <code>is_meeting=Y</code>.</td></tr>
-            <tr><td><code>remind</code></td><td>array</td><td><span class="optional">Optional</span></td><td>Reminder settings. Default: <code>[{"type":"min","count":15}]</code> (15 min before).</td></tr>
-        </tbody>
-    </table>
-
-    <div class="note">
-        <strong>🔍 Auto‑search logic:</strong> The API scans the calendar in 15‑minute increments starting from <code>startHour:startMinute</code>, up to <code>rangeMinutes</code> forward. The <strong>first slot</strong> that fits <code>durationMinutes</code> and does <strong>not</strong> overlap any existing event is selected and booked. After booking, the event ID is returned.
-    </div>
-
-    <h3>📤 Example Request (book a 30‑minute meeting with attendee)</h3>
-    <pre>curl -X POST https://your-domain.com/book_meeting.php \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ownerId": 123,
-    "date": "2026-03-31",
-    "durationMinutes": 30,
-    "startHour": 10,
-    "rangeMinutes": 300,
-    "name": "Project Sync",
-    "description": "Discuss Q2 roadmap",
-    "location": "Zoom / Internal VC",
-    "is_meeting": "Y",
-    "attendees": [456, 789],
-    "color": "#9cbe1c"
-  }'</pre>
-
-    <h3>✅ Success Response</h3>
     <pre>{
-  "status": "success",
-  "message": "Meeting booked successfully",
-  "event_id": 2417,
-  "slot": {
-    "start": "2026-03-31T10:00:00+03:00",
-    "end": "2026-03-31T10:30:00+03:00"
-  },
-  "api_response": { ... }
+  "message": {
+    "type": "tool-calls",
+    "toolCallList": [
+      {
+        "id": "toolcall_abc123",
+        "function": {
+          "name": "book_bitrix_meeting",
+          "arguments": {
+            "date": "2026-03-31",
+            "durationMinutes": 30,
+            "name": "Project Sync"
+          }
+        }
+      },
+      {
+        "id": "toolcall_def456",
+        "function": {
+          "name": "book_bitrix_meeting",
+          "arguments": {
+            "date": "2026-03-31",
+            "durationMinutes": 30,
+            "name": "Follow-up Call"
+          }
+        }
+      }
+    ]
+  }
 }</pre>
 
-    <h3>❌ No Free Slot Response</h3>
+    <h3>📤 Success Response</h3>
     <pre>{
-  "status": "error",
-  "message": "Not Available",
-  "details": "No free slots found within the specified range."
-}</pre>
-
-    <h3>❌ Validation / Bitrix Error</h3>
-    <pre>{
-  "status": "error",
-  "message": "Not Available",
-  "details": "Invalid event data (Bitrix error description)",
-  "api_response": { ... }
+  "results": [
+    {
+      "toolCallId": "toolcall_abc123",
+      "result": {
+        "status": "success",
+        "event_id": 2417,
+        "slot": {
+          "start": "2026-03-31T10:00:00+03:00",
+          "end": "2026-03-31T10:30:00+03:00"
+        },
+        "message": "Meeting booked successfully"
+      }
+    },
+    {
+      "toolCallId": "toolcall_def456",
+      "result": {
+        "status": "success",
+        "event_id": 2418,
+        "slot": {
+          "start": "2026-03-31T10:30:00+03:00",
+          "end": "2026-03-31T11:00:00+03:00"
+        },
+        "message": "Meeting booked successfully"
+      }
+    }
+  ]
 }</pre>
 </div>
 
 <hr />
 
-<h2>📌 Common Notes & Integration Tips</h2>
+<h2>📌 Common Notes</h2>
 <ul>
-    <li><strong>Time zone:</strong> All endpoints use <code>+03:00</code> (Bitrix24 timezone configured on the portal). Adjust if your portal uses a different zone.</li>
-    <li><strong>CORS:</strong> All endpoints return <code>Access-Control-Allow-Origin: *</code> and support <code>OPTIONS</code> preflight.</li>
-    <li><strong>Search step:</strong> Both <code>get_free.php</code> and <code>book_meeting.php</code> scan in 15‑minute intervals. The minimum bookable duration is 15 minutes, but you can set any duration multiple of 15 (recommended).</li>
-    <li><strong>Event overlap detection:</strong> Overlap is strict: if any existing event occupies even a minute of the candidate slot, it is considered busy.</li>
-    <li><strong>User ID source:</strong> Always fetch the latest user list from <code>get_users.php</code> to ensure valid <code>ownerId</code> and attendee IDs.</li>
-    <li><strong>Meeting vs simple event:</strong> If you set <code>"is_meeting": "Y"</code>, the event becomes a meeting and can include attendees and a host. Without that flag, it's a simple calendar event.</li>
+    <li><strong>Hardcoded User:</strong> All operations are performed for User ID <code>1</code> (Mohamed Nady). Any <code>ownerId</code> passed in arguments will be ignored.</li>
+    <li><strong>Time zone:</strong> All endpoints use <code>+03:00</code>.</li>
+    <li><strong>Protocol:</strong> The <code>message.toolCallList</code> can contain multiple calls. Each script will process only the tool calls matching its respective function (<code>get_calendar_timeline</code>, <code>get_free_slots</code>, or <code>book_bitrix_meeting</code>).</li>
 </ul>
 
-<h2>🚀 Quick Start Flow</h2>
-<ol>
-    <li>Call <code>GET /get_users.php</code> → retrieve user list, display in dropdown.</li>
-    <li>Optionally call <code>POST /get_free.php</code> to preview free slots for a given user, date, and duration.</li>
-    <li>Call <code>POST /book_meeting.php</code> with the selected user, date, duration, and meeting details → automatically finds and books the first free slot.</li>
-</ol>
-
 <footer>
-    <p>📘 API Version 1.0 — Powered by Bitrix24 REST Webhooks | All responses are JSON encoded.</p>
+    <p>📘 API Version 2.0 (Tool-Calls) — Powered by Bitrix24 REST Webhooks</p>
 </footer>
 </body>
 </html>

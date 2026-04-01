@@ -1,7 +1,7 @@
 <?php
 /**
  * API to get available time slots for a specific user in Bitrix24
- * Accepts POST JSON payload
+ * Accepts POST JSON payload in "tool-calls" format
  */
 
 $webhookUrl = 'https://keenenter.bitrix24.com/rest/807/mpb6cgx0wktban69/';
@@ -13,37 +13,6 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
-}
-
-// Read JSON input
-$input = json_decode(file_get_contents('php://input'), true);
-
-// Default values for testing
-if (!$input) {
-    $input = [
-        'ownerId' => '123',
-        'date' => date('Y-m-d'),
-        'durationMinutes' => 30,
-        'startHour' => 9,
-        'startMinute' => 0,
-        'rangeMinutes' => 480, // 8 hours
-    ];
-}
-
-// Validate input
-$ownerId = intval($input['ownerId'] ?? 0);
-$targetDate = $input['date'] ?? date('Y-m-d');
-$durationMinutes = intval($input['durationMinutes'] ?? 30);
-$startHour = intval($input['startHour'] ?? 9);
-$startMinute = intval($input['startMinute'] ?? 0);
-$rangeMinutes = intval($input['rangeMinutes'] ?? 480);
-
-if (!$ownerId || !$durationMinutes) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Invalid input parameters'
-    ]);
-    exit;
 }
 
 // Helper to call Bitrix API
@@ -66,63 +35,92 @@ function callBitrix24($method, $data)
     return json_decode($response, true);
 }
 
-// 1️⃣ Get busy slots
-$getEventsData = [
-    'type' => 'user',
-    'ownerId' => $ownerId,
-    'from' => $targetDate . 'T00:00:00+03:00',
-    'to' => $targetDate . 'T23:59:59+03:00',
-];
+/**
+ * Core logic to get free slots
+ */
+function handle_get_free_slots($args)
+{
+    // Hardcode ownerId to 1 (nady@keenenter.com)
+    $ownerId = 1;
+    $targetDate = $args['date'] ?? date('Y-m-d');
+    $durationMinutes = intval($args['durationMinutes'] ?? 30);
+    $startHour = intval($args['startHour'] ?? 9);
+    $startMinute = intval($args['startMinute'] ?? 0);
+    $rangeMinutes = intval($args['rangeMinutes'] ?? 480);
 
-$eventsResponse = callBitrix24('calendar.event.get', $getEventsData);
+    // 1️⃣ Get busy slots
+    $getEventsData = [
+        'type' => 'user',
+        'ownerId' => $ownerId,
+        'from' => $targetDate . 'T00:00:00+03:00',
+        'to' => $targetDate . 'T23:59:59+03:00',
+    ];
 
-$busySlots = [];
+    $eventsResponse = callBitrix24('calendar.event.get', $getEventsData);
+    $busySlots = [];
 
-if (isset($eventsResponse['result']) && is_array($eventsResponse['result'])) {
-    foreach ($eventsResponse['result'] as $event) {
-        $busySlots[] = [
-            'start' => strtotime($event['DATE_FROM']),
-            'end' => strtotime($event['DATE_TO']),
-        ];
-    }
-}
-
-// Sort busy slots
-usort($busySlots, fn($a, $b) => $a['start'] <=> $b['start']);
-
-// 2️⃣ Calculate available slots
-$startOfSearch = strtotime("$targetDate $startHour:$startMinute:00");
-$endOfSearch = $startOfSearch + ($rangeMinutes * 60);
-
-$currentTime = $startOfSearch;
-$increment = 15 * 60; // check every 15 min
-$availableSlots = [];
-
-while ($currentTime + ($durationMinutes * 60) <= $endOfSearch) {
-    $slotEnd = $currentTime + ($durationMinutes * 60);
-    $isFree = true;
-
-    foreach ($busySlots as $busy) {
-        if ($currentTime < $busy['end'] && $slotEnd > $busy['start']) {
-            $isFree = false;
-            break;
+    if (isset($eventsResponse['result']) && is_array($eventsResponse['result'])) {
+        foreach ($eventsResponse['result'] as $event) {
+            $busySlots[] = [
+                'start' => strtotime($event['DATE_FROM']),
+                'end' => strtotime($event['DATE_TO']),
+            ];
         }
     }
 
-    if ($isFree) {
-        $availableSlots[] = [
-            'start' => date('Y-m-d\TH:i:s+03:00', $currentTime),
-            'end' => date('Y-m-d\TH:i:s+03:00', $slotEnd)
-        ];
+    // Sort busy slots
+    usort($busySlots, fn($a, $b) => $a['start'] <=> $b['start']);
+
+    // 2️⃣ Calculate available slots
+    $startOfSearch = strtotime("$targetDate $startHour:$startMinute:00");
+    $endOfSearch = $startOfSearch + ($rangeMinutes * 60);
+
+    $currentTime = $startOfSearch;
+    $increment = 15 * 60; 
+    $availableSlots = [];
+
+    while ($currentTime + ($durationMinutes * 60) <= $endOfSearch) {
+        $slotEnd = $currentTime + ($durationMinutes * 60);
+        $isFree = true;
+
+        foreach ($busySlots as $busy) {
+            if ($currentTime < $busy['end'] && $slotEnd > $busy['start']) {
+                $isFree = false;
+                break;
+            }
+        }
+
+        if ($isFree) {
+            $availableSlots[] = [
+                'start' => date('Y-m-d\TH:i:s+03:00', $currentTime),
+                'end' => date('Y-m-d\TH:i:s+03:00', $slotEnd)
+            ];
+        }
+
+        $currentTime += $increment;
     }
 
-    $currentTime += $increment;
+    return [
+        'status' => 'success',
+        'available_slots' => $availableSlots,
+        'count' => count($availableSlots)
+    ];
 }
 
-echo json_encode([
-    'status' => 'success',
-    'available_slots' => $availableSlots,
-    'count' => count($availableSlots)
-]);
+// Read JSON input
+$rawInput = json_decode(file_get_contents('php://input'), true);
+$results = [];
 
-?>
+$toolCallList = $rawInput['message']['toolCallList'] ?? [];
+
+foreach ($toolCallList as $toolCall) {
+    if (($toolCall['function']['name'] ?? '') === 'get_free_slots') {
+        $result = handle_get_free_slots($toolCall['function']['arguments'] ?? []);
+        $results[] = [
+            'toolCallId' => $toolCall['id'],
+            'result' => $result
+        ];
+    }
+}
+
+echo json_encode(['results' => $results]);
